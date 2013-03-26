@@ -18,8 +18,8 @@ public class GWASAnnotation {
 
     private String[] chromosomes = new String[] { "chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9", "chr10" };
 
-    //private String path = "\\\\andersonii\\group\\E\\SolexaAnal\\hapmapV2\\hp1\\standardQ87Q87Union\\HapMapV2RefGenV2\\";
-    private String path = "/local/workdirdek29/20130323_workstation/HapMapV2RefGenV2/";
+    // original files "\\\\andersonii\\group\\E\\SolexaAnal\\hapmapV2\\hp1\\standardQ87Q87Union\\HapMapV2RefGenV2\\";
+    
     private String hapMapFile_prefix = "/maizeHapMapV2_B73RefGenV2_201203028_";
 
     private String hapMapFile_suffix = ".hmp.txt";

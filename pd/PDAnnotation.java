@@ -15,9 +15,9 @@ public class PDAnnotation {
     private boolean myIsSBit = true;
 
     private String[] chromosomes = new String[] { "chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9", "chr10" };
-    private String path = "/local/workdirdek29/20130323_workstation/HapMapV2RefGenV2/";
     private String hapMapFile_prefix = "/maizeHapMapV2_B73RefGenV2_201203028_";
     private String hapMapFile_suffix = ".hmp.txt";
+    
     private static final int PHYSICAL_POSITION_COLUMN = 0;
     private static final int MINOR_ALLELE_FREQUENCY_COLUMN = 1;
     private static final int COLUMN_OFFSET = 1;  // one for physical position column and another for minor allele frequency column
@@ -25,10 +25,10 @@ public class PDAnnotation {
 
 
     public void init(){
-
         String hapMapPath = "/local/workdir/dek29/20130323_workstation/HapMapV2RefGenV2/";
         File aHapMapDir = new File(hapMapPath);
         String pathGwas = "/local/workdir/dek29/20130323_workstation/gwas_results/";
+        
         File aGwasDir = new File(pathGwas);
 
         PDAnnotation pd = new PDAnnotation();
@@ -38,26 +38,34 @@ public class PDAnnotation {
 
 
     public void loadAllChromosomes(File gwasDir, File hapMapDir){
-        IHDF5Writer writer = HDF5Factory.open("chromosomes10.h5");
+//        IHDF5Writer writer = HDF5Factory.open("chromosomes10.h5");
         // Define the block size as 10 x 10.
-        writer.createIntMatrix("results", 10, 10);
+//        writer.createIntMatrix("results", 10, 10);
 
-        for(int i =9; i>=9; i--){
+        for(int i =9; i>=0; i--){
             String chromosomeFile = hapMapDir + hapMapFile_prefix + chromosomes[i] + hapMapFile_suffix;
 
-            BitNucleotideAlignment bna = readFile(chromosomeFile);    // full chromosome
+            BitNucleotideAlignment bna = readFile(chromosomeFile);    
 
-            int[][] chrResults = loadGWAS(bna, gwasDir, chromosomes[i]);
+            loadGWAS(bna, gwasDir, chromosomes[i]);
+//            int[][] chrResults = 
 
-            //todo test and verify
-            writer.writeIntMatrixBlock("results", chrResults, i, 0);
+            // test and verify with int matrix block
+//            writer.writeIntMatrixBlock("results", chrResults, i, 0);
 
-            chrResults = null;
+//            chrResults = null;
             bna = null;
         }
-        writer.close();
+//        writer.close();
     }
 
+    /**
+     *  Load all results gwas results for a given chromosome
+     * @param bna
+     * @param gwasDirIn
+     * @param chromosomeIn
+     * @return
+     */
     private int[][] loadGWAS(BitNucleotideAlignment bna,  File gwasDirIn, String chromosomeIn){
 
         FolderParser fp = new FolderParser(gwasDirIn);
@@ -80,7 +88,7 @@ public class PDAnnotation {
         }catch (Exception e ) { /* ignore */ }
 
         // when starting a new chromosome, write out the results of the last chromosome
-        // write 2^20 bases as a block in HDF5
+        // write 2^16 bases as a block in HDF5
         for(int j=0; j<traits.length; j++){
 
             File gwasFile = fp.getFile(chromosomeIn, traits[j]);
@@ -91,7 +99,7 @@ public class PDAnnotation {
             // if the file is empty, move on to next trait
             if(intVals == null) continue;
 
-            // get the gwas value(s) of interest
+            // get the gwas value(s) of interest in the appropriate column
             int gwasPos = 6;
 
             int[] vals = new int[alignmentPhysPos.length];
@@ -182,13 +190,12 @@ public class PDAnnotation {
      * @param input float[] data to be added to the dataFinal
      * @param dataFinal float[][] which is the recipient of added data
      * @param column column in dataFinal to which the input is added
-     * @param inputPosition int[] physical positions of the input data. It is assumed that the positions are increasing.
+     * @param inputPosition int[] physical positions of the input data. 
      * @throws Exception input[] must be of the same length as inputPosition
      */
     private void addNewColumns(int[] input, int[][] dataFinal, int column, int[] inputPosition) throws Exception{
         if(input.length != inputPosition.length){ throw new Exception("input[] must be the same length as the inputPostions[]"); }
 
-        boolean debugMe = false;
         if(dataFinal[0].length < column)   {
             throw new ArrayIndexOutOfBoundsException("Column does not exist: " + column);
         }
@@ -197,7 +204,7 @@ public class PDAnnotation {
         for(int i = 0; i < dataFinal.length; i++){
             float alignmentPos = dataFinal[i][0];
             for(int j = 0; j < inputPosition.length; j++){
-//                if((alignmentPos -50 < (float)inputPosition[j]) && (alignmentPos +50 > (float)inputPosition[j])){
+//                if((alignmentPos -50 < (float)inputPosition[j]) && (alignmentPos +50 > (float)inputPosition[j])){    // for range limiting
                 if((alignmentPos == (float)inputPosition[j])){
                     dataFinal[i][column] = input[j];
                 }
@@ -213,7 +220,7 @@ public class PDAnnotation {
      */
     private void addNewColumns(float[] input, float[][] dataFinal, int column) throws Exception{
         if(input.length != dataFinal.length) throw new Exception("The float[][] dataFinal must be the same length as the input");
-        boolean debugMe = false;
+        
         if(dataFinal[0].length < column)   {
             throw new ArrayIndexOutOfBoundsException("Column does not exist: " + column);
         }
@@ -231,7 +238,7 @@ public class PDAnnotation {
      */
     private void addNewColumns(int[] input, int[][] dataFinal, int column) throws Exception{
         if(input.length != dataFinal.length) throw new Exception("The float[][] dataFinal must be the same length as the input");
-        boolean debugMe = false;
+        
         if(dataFinal[0].length < column)   {
             throw new ArrayIndexOutOfBoundsException("Column does not exist: " + column);
         }
