@@ -38,20 +38,30 @@ public class PDAnnotation {
 
 
     public void loadAllChromosomes(File gwasDir, File hapMapDir){
-//        IHDF5Writer writer = HDF5Factory.open("chromosomes10.h5");
+        IHDF5Writer writer = HDF5Factory.open("chromosomes10.h5");
         // Define the block size as 10 x 10.
 //        writer.createIntMatrix("results", 10, 10);
 
         for(int i =9; i>=0; i--){
             String chromosomeFile = hapMapDir + hapMapFile_prefix + chromosomes[i] + hapMapFile_suffix;
+            
+            
 
             BitNucleotideAlignment bna = readFile(chromosomeFile);    
+            //int[] position
+            //write positions to hdf "pos"+chromosome
+           //write alleles to hdf "allele"+chromosome
+            //delete bna
+            
 
-            loadGWAS(bna, gwasDir, chromosomes[i]);
-//            int[][] chrResults = 
-
+            int[][] chrResults =loadGWAS(bna, gwasDir, chromosomes[i]);
+            //for traits
+//            int[][] chrResults =
+            writer.createFloatArray("GW_c"+chr"_T"+trait, chrResults[t].length);
+            writer.writeFloatArray("GW_c"+chr"_T"+trait, chrResults[t]);
+            //next trait
             // test and verify with int matrix block
-//            writer.writeIntMatrixBlock("results", chrResults, i, 0);
+//            writer.writeIntMatrixBlock("results"+i, chrResults, i, 0);
 
 //            chrResults = null;
             bna = null;
