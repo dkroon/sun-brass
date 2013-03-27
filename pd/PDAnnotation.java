@@ -11,6 +11,11 @@ import java.io.IOException;
 
 
 public class PDAnnotation {
+	
+	private static final String PHYSICAL_POSITIONS = "PhyPos";
+	private static final String CHROMOSOME = "_C";
+	private static final String GWAS_TRAIT = "_GT";
+	private static final String MINOR_ALLELE_FREQUENCY = "MAF";
 
     private boolean myIsSBit = true;
 
@@ -42,18 +47,48 @@ public class PDAnnotation {
         // Define the block size as 10 x 10.
 //        writer.createIntMatrix("results", 10, 10);
 
-        for(int i =9; i>=0; i--){
+        for(int i =0; i<chromosomes.length; i++){
             String chromosomeFile = hapMapDir + hapMapFile_prefix + chromosomes[i] + hapMapFile_suffix;
             
             
 
             BitNucleotideAlignment bna = readFile(chromosomeFile);    
             //int[] position
-            //write positions to hdf "pos"+chromosome
-           //write alleles to hdf "allele"+chromosome
-            //delete bna
+            int[] alignmentPhysPos = bna.getPhysicalPositions();
             
+            float[] maf = new float[alignmentPhysPos.length];
+            for(int j=0; j< maf.length; j++){
+            	maf[j] = (float)bna.getMinorAlleleFrequency(j);
+            }
+           
+            // get the alleles
 
+          //delete bna
+            bna = null;
+            
+          //write positions to hdf "pos"+chromosome
+           writer.createIntArray(PDAnnotation.PHYSICAL_POSITIONS + PDAnnotation.CHROMOSOME + (i + 1), alignmentPhysPos.length);
+           writer.writeIntArray(PDAnnotation.PHYSICAL_POSITIONS, alignmentPhysPos);
+           
+              
+           //write alleles to hdf "allele"+chromosome
+           // which version? String[][] ?
+           
+           // write minor allele frequencies
+           writer.createFloatArray(PDAnnotation.MINOR_ALLELE_FREQUENCY, maf.length);
+           writer.writeFloatArray(PDAnnotation.MINOR_ALLELE_FREQUENCY, maf);
+            
+           FolderParser fp = new FolderParser(gwasDirIn);
+           String[] traits = fp.getAllTraits();
+           
+           for(int j = 0; j < traits.length; j++){
+        	   File gwasFile = fp.getFile(chromosomeIn, traits[j]);
+        	   	parseGWASIntValues(gwasFile, fieldOfInterest, true );
+
+               // if the file is empty, move on to next trait
+               if(intVals == null) continue;
+
+           }
             int[][] chrResults =loadGWAS(bna, gwasDir, chromosomes[i]);
             //for traits
 //            int[][] chrResults =
@@ -81,7 +116,6 @@ public class PDAnnotation {
         FolderParser fp = new FolderParser(gwasDirIn);
         String[] traits = fp.getAllTraits();
 
-        int[] alignmentPhysPos = bna.getPhysicalPositions();
 
         int chrBaseCount = alignmentPhysPos.length;
 
