@@ -42,7 +42,7 @@ public class PDAnnotation {
     }
 
 
-    public void loadAllChromosomes(File gwasDir, File hapMapDir){
+    public void loadAllChromosomes(File gwasDirIn, File hapMapDir){
         IHDF5Writer writer = HDF5Factory.open("chromosomes10.h5");
         // Define the block size as 10 x 10.
 //        writer.createIntMatrix("results", 10, 10);
@@ -80,28 +80,22 @@ public class PDAnnotation {
             
            FolderParser fp = new FolderParser(gwasDirIn);
            String[] traits = fp.getAllTraits();
-           
+
+           int fieldOfInterest = 1;
            for(int j = 0; j < traits.length; j++){
-        	   File gwasFile = fp.getFile(chromosomeIn, traits[j]);
-        	   	parseGWASIntValues(gwasFile, fieldOfInterest, true );
+        	   File gwasFile = fp.getFile(chromosomes[i], traits[j]);
+        	   	float[] fVals = parseGWASFloatValues(gwasFile, fieldOfInterest, true );
 
                // if the file is empty, move on to next trait
-               if(intVals == null) continue;
+               if(fVals == null) continue;
+
+               String dataSetName = "GW_c"+(i+1)+"_T"+traits[j];
+               writer.createFloatArray(dataSetName, fVals.length);
+               writer.writeFloatArray(dataSetName, fVals);
 
            }
-            int[][] chrResults =loadGWAS(bna, gwasDir, chromosomes[i]);
-            //for traits
-//            int[][] chrResults =
-            writer.createFloatArray("GW_c"+chr"_T"+trait, chrResults[t].length);
-            writer.writeFloatArray("GW_c"+chr"_T"+trait, chrResults[t]);
-            //next trait
-            // test and verify with int matrix block
-//            writer.writeIntMatrixBlock("results"+i, chrResults, i, 0);
-
-//            chrResults = null;
-            bna = null;
         }
-//        writer.close();
+        writer.close();
     }
 
     /**
@@ -116,6 +110,7 @@ public class PDAnnotation {
         FolderParser fp = new FolderParser(gwasDirIn);
         String[] traits = fp.getAllTraits();
 
+        int[] alignmentPhysPos = bna.getPhysicalPositions();
 
         int chrBaseCount = alignmentPhysPos.length;
 
@@ -147,7 +142,7 @@ public class PDAnnotation {
             int gwasPos = 6;
 
             int[] vals = new int[alignmentPhysPos.length];
-            vals = parseGWASFloatValues( gwasFile, gwasPos, true);
+            //vals = parseGWASFloatValues( gwasFile, gwasPos, true);
 
             // add the gwas values to the final (float) data array
             try{
@@ -299,9 +294,9 @@ public class PDAnnotation {
      * @param hasHeader  If true, skips the first line in the file
      * @return
      */
-    private int[] parseGWASFloatValues(File aFile, int fieldOfInterest, boolean hasHeader){
+    private float[] parseGWASFloatValues(File aFile, int fieldOfInterest, boolean hasHeader){
 
-        int[] fieldValue = null;
+        float[] fieldValue = null;
         StringBuffer sb = null;
         try {
             BufferedReader in = new BufferedReader(new FileReader(aFile));
@@ -321,10 +316,10 @@ public class PDAnnotation {
                 String[] line = sb.toString().split("\n");
                 int lineCount = line.length;
                 int lineIndex = 0;
-                fieldValue = new int[lineCount];
+                fieldValue = new float[lineCount];
                 if(hasHeader) {
                     lineIndex=1;
-                    fieldValue = new int[lineCount-1];
+                    fieldValue = new float[lineCount-1];
                 }
 
                 int field = 1;     // field containing information of interest
@@ -336,9 +331,9 @@ public class PDAnnotation {
 
                         if (hasHeader) {
                             //currently just scaling results and converting to int as test
-                            fieldValue[lineIndex - 1] = (int) Float.parseFloat(val[fieldOfInterest]) * 100000;
+                            fieldValue[lineIndex - 1] =  Float.parseFloat(val[fieldOfInterest]);
                         } else {
-                            fieldValue[lineIndex] = (int) Float.parseFloat(val[fieldOfInterest]) * 100000;
+                            fieldValue[lineIndex] = Float.parseFloat(val[fieldOfInterest]);
                         }
                     } catch (NumberFormatException nfe) {
                         System.err.println("File " + aFile.getName() + " float parsing failed: " + val[field] + "lineIndex: " + lineIndex);
