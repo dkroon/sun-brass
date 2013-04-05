@@ -12,10 +12,11 @@ import java.io.IOException;
 
 public class PDAnnotation {
 	
-	private static final String PHYSICAL_POSITIONS = "PhyPos";
+	private static final String PHYSICAL_POSITIONS = "PhysPos";
 	private static final String CHROMOSOME = "_C";
 	private static final String GWAS_TRAIT = "_GT";
 	private static final String MINOR_ALLELE_FREQUENCY = "MAF";
+	private static final String HAS_DATA = "HasData";  // summary index where if any trait has a value at that location, value is set to 1
 
     private boolean myIsSBit = true;
 
@@ -47,21 +48,22 @@ public class PDAnnotation {
         // Define the block size as 10 x 10.
 //        writer.createIntMatrix("results", 10, 10);
 
+        int[] hasData = null;
         for(int i =0; i<chromosomes.length; i++){
             String chromosomeFile = hapMapDir + hapMapFile_prefix + chromosomes[i] + hapMapFile_suffix;
             
-            
 
             BitNucleotideAlignment bna = readFile(chromosomeFile);    
-            //int[] position
-            int[] alignmentPhysPos = bna.getPhysicalPositions();
             
+            int[] alignmentPhysPos = bna.getPhysicalPositions();
+            hasData = new int[alignmentPhysPos.length];
             float[] maf = new float[alignmentPhysPos.length];
             for(int j=0; j< maf.length; j++){
             	maf[j] = (float)bna.getMinorAlleleFrequency(j);
             }
            
-            // get the alleles
+           // todo: talk to Ed about what he meant here
+            // get the alleles 
 
           //delete bna
             bna = null;
@@ -92,7 +94,7 @@ public class PDAnnotation {
         	   if(fVals == null) continue;
         	   
         	   // find the matches
-        	   float[] pVals = findMatches(alignmentPhysPos, fVals);
+        	   float[] pVals = findMatches(alignmentPhysPos, fVals, hasData);
 
                // if the file is empty, move on to next trait
                if(fVals == null) continue;
@@ -101,23 +103,29 @@ public class PDAnnotation {
                writer.createFloatArray(dataSetName, pVals.length);
                writer.writeFloatArray(dataSetName, pVals);
 
-           }
-        }
+           } // end of traits loop
+           
+           // write 
+           writer.createIntArray(PDAnnotation.HAS_DATA + PDAnnotation.CHROMOSOME + (i + 1), hasData.length);
+           writer.writeIntArray(PDAnnotation.PHYSICAL_POSITIONS, hasData);
+           
+        } // end of chromosome loop
         writer.close();
     }
 
     
-    private float[] findMatches(int[] alignmentPhysPositions, float[][] gwasResults){
+    private float[] findMatches(int[] alignmentPhysPositions, float[][] gwasResults, int[] hasData){
     	float[] results = new float[alignmentPhysPositions.length];
     	
     	int lastIndex = 0;
     	for(int i = 0; i < alignmentPhysPositions.length; i++){
     		int anIndex = lastIndex;
-    		while(anIndex<gwasResults.length ){
-    			if(gwasResults[0][lastIndex] == (float)alignmentPhysPositions[i])
+    		while(anIndex<gwasResults[0].length ){
+    			if(((int)gwasResults[0][anIndex]) == alignmentPhysPositions[i])
     			{
-    				results[i] = gwasResults[1][lastIndex];
-    				System.out.println("\t" + alignmentPhysPositions[i]);
+    				results[i] = gwasResults[1][anIndex];
+    				hasData[i] = 1;
+    				System.out.println("\t" + alignmentPhysPositions[i] + "\t" + (int)gwasResults[0][anIndex]  + "\t" + gwasResults[1][anIndex]);
     				lastIndex = anIndex; 
     			}	
     			anIndex++;
@@ -340,6 +348,7 @@ public class PDAnnotation {
             if (sb == null) {   //  if the StringBuffer was never initialized
                 //  then there are no records in a file
                 String msg = "File " + aFile.getName() + " could not be loaded.  Could it be empty?";
+                return null;
             } else {
 
                 String[] line = sb.toString().split("\n");
@@ -349,7 +358,9 @@ public class PDAnnotation {
                 if(hasHeader) {
                     lineIndex=1;
                     fieldValue = new float[2][lineCount-1];
+                    
                 }
+                if(lineCount<2)  return null;
 
                 int field = 1;     // field containing information of interest
                 int range = 0;
@@ -359,12 +370,13 @@ public class PDAnnotation {
                     try {
 
                         if (hasHeader) {
-                            //currently just scaling results and converting to int as test
+                        	fieldValue[0][lineIndex - 1] = Float.parseFloat(val[physPositionIndex]);
                             fieldValue[1][lineIndex - 1] =  Float.parseFloat(val[pValIndex]);
-                            fieldValue[0][lineIndex - 1] = Float.parseFloat(val[physPositionIndex]);
+                            
                         } else {
-                            fieldValue[1][lineIndex] = Float.parseFloat(val[pValIndex]);
-                            fieldValue[0][lineIndex - 1] = Float.parseFloat(val[physPositionIndex]);
+                            fieldValue[0][lineIndex ] = Float.parseFloat(val[physPositionIndex]);  //physical position
+                            fieldValue[1][lineIndex] = Float.parseFloat(val[pValIndex]);				//
+
                         }
                         
                     } catch (NumberFormatException nfe) {
